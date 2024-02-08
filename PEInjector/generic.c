@@ -51,7 +51,7 @@ BOOL ReadF(const char* file_path, PDWORD file_size, PVOID* read_buffer) {
 	}
 
 	fread(*read_buffer, 1, *file_size, file);
-	DEBUG_PRINT("[*] Reading shellcode from disk with size: %d\n", *file_size);
+	DEBUG_PRINT("[*] Reading the PE from disk with size: %d\n", *file_size);
 	fclose(file);
 	return TRUE;
 }
@@ -185,7 +185,7 @@ BOOL Download(LPCWSTR url, LPCWSTR file, PCONTENT cnt) {
 						WinHttpCloseHandle(hConnect);
 						WinHttpCloseHandle(hSession);
 
-						DEBUG_PRINT("[*] Downloaded the shellcode with size: %d\n", TotalSize);
+						DEBUG_PRINT("[*] Downloaded the PE with size: %d\n", TotalSize);
 						return TRUE;
 					}
 					else {

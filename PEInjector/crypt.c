@@ -71,7 +71,7 @@ char* GenKeyIP(char ips[][15], size_t count) {
 ------------------------------------*/
 BOOL rc4enc(PBYTE pKey, PBYTE pData, DWORD dwKey, DWORD sData) {
 
-	DEBUG_PRINT("[*] Decrypting shellcode with size: %d.\n", sData);
+	DEBUG_PRINT("[*] Decrypting the PE with size: %d.\n", sData);
 	NTSTATUS status = NULL;
 	USTRING Key = {
 		.Length = dwKey,
@@ -95,7 +95,7 @@ BOOL rc4enc(PBYTE pKey, PBYTE pData, DWORD dwKey, DWORD sData) {
 		DEBUG_PRINT("[!] Operation failed with status: %d\n", status);
 		return FALSE;
 	};
-	DEBUG_PRINT("[*] Decrypted shellcode!\n");
+	DEBUG_PRINT("[*] Decrypted!\n");
 	return TRUE;
 }
 
