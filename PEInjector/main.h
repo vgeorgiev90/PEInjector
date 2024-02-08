@@ -48,7 +48,7 @@
 ---------------------*/
 extern NTCONF g_NtConfig;
 extern SC_FUNC g_Fun;
-
+extern CONTENT temp;    //To hold the Base addres of the copied PE and its size, used to encrypt/decrypt its content
 
 
 /*-------------------------
@@ -81,7 +81,7 @@ UINT32 HashA(IN PCHAR String);
 BOOL rc4enc(IN PBYTE pKey, IN PBYTE pData, IN DWORD dwKey, IN DWORD sData);
 VOID XoR(IN PBYTE pMessage, IN size_t sMsg_size, IN PBYTE key, IN size_t key_size);
 char* GenKeyIP(IN char ips[][15], IN size_t count);
-BOOL Decrypt(IN PCONTENT cnt);
+BOOL Crypt(IN PCONTENT cnt);
 
 
 //Syscall related

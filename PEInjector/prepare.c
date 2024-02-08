@@ -70,6 +70,12 @@ PBYTE PreparePE(PPEHDRS pPeHdrs) {
 		);
 	}
 	DEBUG_PRINT("[*] Finished\n");
+
+	//Encrypt the written data
+	temp.data = pPEBase;
+	temp.size = peSize;
+	Crypt(&temp);
+
 	return pPEBase;
 }
 
@@ -78,6 +84,9 @@ PBYTE PreparePE(PPEHDRS pPeHdrs) {
  Apply the PE relocations
 --------------------------------*/
 BOOL ApplyRelocations(PIMAGE_DATA_DIRECTORY pBaseRelocDir, ULONG_PTR pBaseAddr, ULONG_PTR pPrefAddr) {
+
+	//Decrypt before applying relocations
+	Crypt(&temp);
 
 	DEBUG_PRINT("[*] Attempting to apply base relocaitons\n");
 	PIMAGE_BASE_RELOCATION pBaseReloc = (pBaseAddr + pBaseRelocDir->VirtualAddress);
@@ -125,6 +134,10 @@ BOOL ApplyRelocations(PIMAGE_DATA_DIRECTORY pBaseRelocDir, ULONG_PTR pBaseAddr, 
 		pBaseReloc = (PIMAGE_BASE_RELOCATION)pRelocEntry;
 	}
 	DEBUG_PRINT("[*] Finished applying relocations\n");
+
+	//Encrypt again
+	Crypt(&temp);
+
 	return TRUE;
 }
 
@@ -134,6 +147,9 @@ BOOL ApplyRelocations(PIMAGE_DATA_DIRECTORY pBaseRelocDir, ULONG_PTR pBaseAddr, 
   Fix the PE's import table
 ----------------------------------------*/
 BOOL FixImports(PIMAGE_DATA_DIRECTORY pImportTable, PBYTE pPeBaseAddr) {
+
+	//Decrypt
+	Crypt(&temp);
 
 	DEBUG_PRINT("[*] Resolving the PE's import table\n");
 
@@ -210,6 +226,9 @@ BOOL FixImports(PIMAGE_DATA_DIRECTORY pImportTable, PBYTE pPeBaseAddr) {
 			ThunkSize += sizeof(IMAGE_THUNK_DATA);
 		}
 	}
+	//Encrypt
+	Crypt(&temp);
+
 	return TRUE;
 }
 
@@ -219,6 +238,9 @@ BOOL FixImports(PIMAGE_DATA_DIRECTORY pImportTable, PBYTE pPeBaseAddr) {
   Fix the PE sections's memory permissions
 ------------------------------------------*/
 BOOL FixMem(ULONG_PTR pPeBaseAddr, PIMAGE_NT_HEADERS pNtHdrs, PIMAGE_SECTION_HEADER pSectHdrs) {
+
+	//Decrypt
+	Crypt(&temp);
 
 	DWORD old = 0;
 	SIZE_T secSize = 0;
@@ -283,6 +305,7 @@ BOOL FixMem(ULONG_PTR pPeBaseAddr, PIMAGE_NT_HEADERS pNtHdrs, PIMAGE_SECTION_HEA
 		}
 
 	}
+
 	DEBUG_PRINT("[*] Finished applying sections memory protections\n");
 	return TRUE;
 }
