@@ -10,11 +10,12 @@
   - Able to run EXE or DLL     - DONE
   - Read the PE from webserver - DONE
   - Make use of encrypted PE   - DONE
+  - Encrypt the PE's sections
+    before its execution       - DONE
 -------------------------------------*/
 
 NTCONF g_NtConfig = { 0 };
 SC_FUNC g_Fun = { 0 };
-
 CONTENT temp = { 0 };
 
 
@@ -48,15 +49,15 @@ int main()
 		return 1;
 	}
 
-	cnt.data = NULL;
-	cnt.size = NULL;
-
 	//Allocation memory and copy the PE sections
 	pPeBase = PreparePE(&PeHdrs);
 	if (pPeBase == NULL) {
 		DEBUG_PRINT("[!] Something failed\n");
 		return 1;
 	}
+
+	cnt.data = NULL;
+	cnt.size = NULL;
 
 	//Apply relocations
 	if (!ApplyRelocations(PeHdrs.pRelocDir, pPeBase, PeHdrs.pNtHeaders->OptionalHeader.ImageBase)) {

