@@ -26,7 +26,7 @@
 	  mov r10, rax
 	  mov eax, wSystemCall
 	  jmp RunIT
-          xor eax, eax
+      xor eax, eax
 	  xor ecx, ecx
 	  shl r10, 2
 	 RunIT:

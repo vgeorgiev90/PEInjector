@@ -12,9 +12,12 @@
   - Make use of encrypted PE   - DONE
   - Encrypt the PE's sections
     before its execution       - DONE
+  - Find indirect syscall,
+    which wont be in ntdll     - DONE
 -------------------------------------*/
 
 NTCONF g_NtConfig = { 0 };
+NTCONF g_Win32u = { 0 };
 SC_FUNC g_Fun = { 0 };
 CONTENT temp = { 0 };
 
@@ -70,7 +73,7 @@ int main()
 		DEBUG_PRINT("[!] Failed fixing the Import Table\n");
 		return 1;
 	}
-
+	
 	//Fix the section memory permissions
 	if (!FixMem(pPeBase, PeHdrs.pNtHeaders, PeHdrs.pSectHeader)) {
 		DEBUG_PRINT("[!] Failed fixing memory permissions\n");
@@ -79,7 +82,7 @@ int main()
 
 	//Fix the PE's arguments
 	PrepareArgs((LPSTR)PE_ARGS);
-
+	
 	//Execute the PE's entrypoint
 	if (!Execute(pPeBase, &PeHdrs, NULL)) {
 		DEBUG_PRINT("[!] Execution failed\n");

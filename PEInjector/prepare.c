@@ -52,7 +52,6 @@ PBYTE PreparePE(PPEHDRS pPeHdrs) {
 	SIZE_T peSize = (SIZE_T)pPeHdrs->pNtHeaders->OptionalHeader.SizeOfImage;
 
 	DEBUG_PRINT("[*] Allocating memory with size: %d\n", pPeHdrs->pNtHeaders->OptionalHeader.SizeOfImage);
-
 	GetSSN(g_Fun.NtAllocateVirtualMemory.dwSSn, g_Fun.NtAllocateVirtualMemory.pSyscallIndJmp);
 	NTSTATUS status = Invoke((HANDLE)-1, &pPEBase, 0, &peSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	if (status != 0x00) {

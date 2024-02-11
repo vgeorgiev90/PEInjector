@@ -259,6 +259,15 @@ BOOL GetSyscl(IN DWORD dwSysHash, OUT PSYSCALL pSyscl) {
         return FALSE;
     }
 
+#ifdef WIN32_JMP
+    PVOID syscallJmp = NULL;
+    if (!FetchWin32Syscall(&syscallJmp)) {
+        DEBUG_PRINT("[!] Could not find a syscall address in Win32u.dll\n");
+        return FALSE;
+    }
+    pSyscl->pSyscallIndJmp = syscallJmp;
+
+#elif !defined(WIN32_JMP)
     //Looking somewhere random 0xFF(225) bytes away from the syscall's address
     ULONG_PTR uFuncAddr = (ULONG_PTR)pSyscl->pSyscallAddress + 0xFF;
 
@@ -271,7 +280,7 @@ BOOL GetSyscl(IN DWORD dwSysHash, OUT PSYSCALL pSyscl) {
         }
     }
     /*---------------------------------------------------------------------------------------------------------*/
-
+#endif
     //Check if all members of pSyscl are initialized
     if (pSyscl->dwSSn != NULL && pSyscl->dwSyscallHash != NULL && pSyscl->pSyscallAddress != NULL && pSyscl->pSyscallIndJmp != NULL) {
         return TRUE;
@@ -282,3 +291,92 @@ BOOL GetSyscl(IN DWORD dwSysHash, OUT PSYSCALL pSyscl) {
     }
     return TRUE;
 }
+
+
+
+/*---------------------------------------
+  Try to get syscall instruction address
+  which is not located in ntdll
+  1. Make sure that win32u.dll is loaded
+  in the IAT by invoking SHGetFolderPathW
+  2. Get a handle to it and search
+  for a syscall instruction
+---------------------------------------*/
+#ifdef WIN32_JMP
+
+VOID AddWin32() {
+#define CSIDL_MYVIDEO 0x000E
+
+    WCHAR szVar[MAX_PATH] = {0};
+    SHGetFolderPathW(NULL, CSIDL_MYVIDEO, NULL, NULL, szVar);
+}
+
+BOOL ParseWin32(ULONG_PTR moduleBase) {
+    
+    g_Win32u.uModule = moduleBase;
+
+    DEBUG_PRINT("[*] Parsing PE headers for win32u.dll\n");
+    //Get the NT headers
+    PIMAGE_NT_HEADERS NtHdrs = (PIMAGE_NT_HEADERS)(g_Win32u.uModule + ((PIMAGE_DOS_HEADER)g_Win32u.uModule)->e_lfanew);
+
+    DEBUG_PRINT("\t> Getting export directory\n");
+    PIMAGE_EXPORT_DIRECTORY pExpDir = (PIMAGE_EXPORT_DIRECTORY)(g_Win32u.uModule + NtHdrs->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+
+    DEBUG_PRINT("\t> Getting export directory entries\n");
+    g_Win32u.pdwAddressesArray = (PDWORD)(g_Win32u.uModule + pExpDir->AddressOfFunctions);
+    g_Win32u.pdwNamesArray = (PDWORD)(g_Win32u.uModule + pExpDir->AddressOfNames);
+    g_Win32u.pwOrdinalsArray = (PWORD)(g_Win32u.uModule + pExpDir->AddressOfNameOrdinals);
+    g_Win32u.dwNamesNumber = pExpDir->NumberOfNames;
+
+    if (!g_Win32u.pdwAddressesArray || !g_Win32u.pdwNamesArray || !g_Win32u.pwOrdinalsArray || !g_Win32u.dwNamesNumber) {
+        DEBUG_PRINT("[!] Could not initialize win32u structure\n");
+        return FALSE;
+    }
+    return TRUE;
+}
+
+
+BOOL FetchWin32Syscall(PVOID* pSyscallJmpAddr) {
+#define	SYSCALL_STUB_SIZE            0x20
+
+    int Seed = rand() % 0x10,  // Between 0 and 15
+        Count = 0;
+
+
+    if (!g_Win32u.uModule) {
+        AddWin32();
+        if (!ParseWin32(GetModuleHandle(L"win32u.dll"))) {
+            DEBUG_PRINT("[!] Failed initializing Win32u structure\n");
+            return FALSE;
+        }
+    }
+
+    DEBUG_PRINT("[*] Searching for syscall in win32u.dll\n");
+    for (DWORD i = 0; i < g_Win32u.dwNamesNumber; i++) {
+
+        PCHAR funName = (PCHAR)(g_Win32u.uModule + g_Win32u.pdwNamesArray[i]);
+        PVOID funAddr = (PVOID)(g_Win32u.uModule + g_Win32u.pdwAddressesArray[g_Win32u.pwOrdinalsArray[i]]);
+
+        for (DWORD z = 0; z < SYSCALL_STUB_SIZE; z++) {
+            
+            //Search for syscall instruction, followed by ret instruction
+            if (*(unsigned short*)((ULONG_PTR)funAddr + z) == 0x050F && 
+                *(BYTE*)((ULONG_PTR)funAddr + z + sizeof(unsigned short)) == 0xC3) 
+            {
+                // Used to resolve a random instruction every time
+                if (Seed == Count) {
+                    *pSyscallJmpAddr = (PVOID)((ULONG_PTR)funAddr + z);
+                    break;
+                }
+                Count++;
+            }
+        }
+        if (*pSyscallJmpAddr) {
+            DEBUG_PRINT("\t> Found jump address: 0x%p\n", *pSyscallJmpAddr);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+#endif
