@@ -3,7 +3,7 @@ A simple PE injector that downloads encrypted PE executable from a webserver map
 fixes all relocations and imports and executes its entrypoint.
 
 ## Features
-  - Make use of indirect syscalls 
+  - Make use of indirect syscalls, either from ntdll.dll or win32u.dll (in order to bypass elastic EDR's indirect syscall detection rule) 
   
   - Downloads the PE from a webserver, or reads it from a local file (mainly for testing)
   
@@ -16,6 +16,7 @@ fixes all relocations and imports and executes its entrypoint.
   
 ## TODO
   - Remove the need for LoadLibrary and GetProcAddress to resolve the PE's import table
+  - Implemet custom GetModuleHandle function
   - Remove the need for the CRT library
   - Download the encryption key along with the payload
   
