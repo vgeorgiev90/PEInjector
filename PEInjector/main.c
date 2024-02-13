@@ -22,8 +22,14 @@ SC_FUNC g_Fun = { 0 };
 CONTENT temp = { 0 };
 
 
+extern SECTION textSect = { 0 };
+extern SECTION dataSect = { 0 };
+extern SECTION rdataSect = { 0 };
+
+
 int main()
 {
+
 	CONTENT cnt = { 0 };
 	PEHDRS PeHdrs = { 0 };
 	PBYTE pPeBase = NULL;
@@ -82,12 +88,11 @@ int main()
 
 	//Fix the PE's arguments
 	PrepareArgs((LPSTR)PE_ARGS);
-	
+
 	//Execute the PE's entrypoint
 	if (!Execute(pPeBase, &PeHdrs, NULL)) {
 		DEBUG_PRINT("[!] Execution failed\n");
 		return 1;
 	}
-
     return 0;
 }

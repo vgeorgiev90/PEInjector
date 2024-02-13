@@ -264,7 +264,7 @@ BOOL FixMem(ULONG_PTR pPeBaseAddr, PIMAGE_NT_HEADERS pNtHdrs, PIMAGE_SECTION_HEA
 		}
 
 		DEBUG_PRINT("[*] Checking memory protection for section: %d\n", i);
-		DEBUG_PRINT("\t> Section name: %s\n", pSectHdrs[i].Name);
+		DEBUG_PRINT("\t> Section name: %s, size: %d\n", pSectHdrs[i].Name, pSectHdrs[i].SizeOfRawData);
 		//Get memory permissions based on section characteristics
 		if (pSectHdrs[i].Characteristics & IMAGE_SCN_MEM_WRITE) {
 			MemProtect = PAGE_WRITECOPY;
@@ -301,6 +301,33 @@ BOOL FixMem(ULONG_PTR pPeBaseAddr, PIMAGE_NT_HEADERS pNtHdrs, PIMAGE_SECTION_HEA
 
 		secSize = pSectHdrs[i].SizeOfRawData;
 		secAddr = (pPeBaseAddr + pSectHdrs[i].VirtualAddress);
+
+		if (strcmp(pSectHdrs[i].Name, ".text") == 0) {
+			textSect.sectAddr = secAddr;
+			textSect.sectSize = secSize;
+			textSect.memProtect = MemProtect;
+			DEBUG_PRINT("\t> .text found, encrypting it and proceeding\n");
+			Crypt(&textSect);
+			continue;
+		} 
+
+		if (strcmp(pSectHdrs[i].Name, ".data") == 0) {
+			dataSect.sectAddr = secAddr;
+			dataSect.sectSize = secSize;
+			dataSect.memProtect = MemProtect;
+			DEBUG_PRINT("\t> .data found, encrypting it and proceeding\n");
+			Crypt(&dataSect);
+			continue;
+		}
+
+		if (strcmp(pSectHdrs[i].Name, ".rdata") == 0) {
+			rdataSect.sectAddr = secAddr;
+			rdataSect.sectSize = secSize;
+			rdataSect.memProtect = MemProtect;
+			DEBUG_PRINT("\t> .rdata found, encrypting it and proceeding\n");
+			Crypt(&rdataSect);
+			continue;
+		}
 
 		GetSSN(g_Fun.NtProtectVirtualMemory.dwSSn, g_Fun.NtProtectVirtualMemory.pSyscallIndJmp);
 		status = Invoke((HANDLE)-1, &secAddr, &secSize, MemProtect, &old);
@@ -367,6 +394,41 @@ VOID PrepareArgs(LPCSTR argsToPass) {
 
 
 
+/*------------------------------------
+ Decrypt and change memory protection
+------------------------------------*/
+BOOL MakeExecutable() {
+
+	//Decrypt the .text section and switch it to executable
+	Crypt(&textSect);
+	DWORD old = 0;
+
+	GetSSN(g_Fun.NtProtectVirtualMemory.dwSSn, g_Fun.NtProtectVirtualMemory.pSyscallIndJmp);
+	NTSTATUS status = Invoke((HANDLE)-1, &textSect.sectAddr, &textSect.sectSize, textSect.memProtect, &old);
+	if (status != 0x00) {
+		DEBUG_PRINT("[!] Failed applying memory protection for section .text, error: 0x%X\n", status);
+		return FALSE;
+	}
+
+	//Decrypt the .rdata
+	Crypt(&dataSect);
+	status = Invoke((HANDLE)-1, &dataSect.sectAddr, &dataSect.sectSize, dataSect.memProtect, &old);
+	if (status != 0x00) {
+		DEBUG_PRINT("[!] Failed applying memory protection for section .data, error: 0x%X\n", status);
+		return FALSE;
+	}
+
+	//Decrypt the .data
+	Crypt(&rdataSect);
+	status = Invoke((HANDLE)-1, &rdataSect.sectAddr, &rdataSect.sectSize, rdataSect.memProtect, &old);
+	if (status != 0x00) {
+		DEBUG_PRINT("[!] Failed applying memory protection for section .rdata, error: 0x%X\n", status);
+		return FALSE;
+	}
+}
+
+
+
 /*-------------------------------------
   Execute the PE's entry point
 -------------------------------------*/
@@ -393,6 +455,11 @@ BOOL Execute(ULONG_PTR pPeBaseAddr, PPEHDRS pPeHdrs, IN OPTIONAL LPCSTR exported
 		for (int i = 0; pTlsCallback[i] != NULL; i++) {
 			pTlsCallback[i]((LPVOID)pPeBaseAddr, DLL_PROCESS_ATTACH, NULL);
 		}
+	}
+
+	//Decrypt and change the .text section to RX
+	if (!MakeExecutable()) {
+		return FALSE;
 	}
 
 	//Executing DLL

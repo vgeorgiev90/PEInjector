@@ -6,6 +6,13 @@
 
 
 
+typedef struct _SECTION {
+	LPVOID sectAddr;
+	SIZE_T sectSize;
+	DWORD memProtect;
+}SECTION, *PSECTION;
+
+
 /*------------------------
  Simple struct to hold
  the PE and its size

